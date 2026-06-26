@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Request {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+
+  // Intake form fields
+  name            String
+  email           String
+  university      String
+  course          String
+  yearOfStudy     String
+  message         String   @db.Text
+
+  // AI triage output
+  category        String   // academic | financial | visa_immigration | housing | health_wellbeing | other
+  urgency         String   // low | medium | high | critical
+  safeguarding    Boolean  @default(false)
+  disposition     String   // handle_now | clarify | escalate | spam
+
+  // Generated output (stored as text)
+  autoReply       String?  @db.Text  // for handle_now
+  clarifyQuestion String?  @db.Text  // for clarify
+  staffSummary    String?  @db.Text  // for escalate
+
+  // V2: AI reasoning + prompt version (internal debugging only, never exposed to students)
+  aiReasoning     String?  @db.Text
+  promptVersion   String?
+
+  // Staff dashboard status
+  status          String   @default("new") // new | in_progress | resolved
+
+  // Flags
+  injectionFlag   Boolean  @default(false)
+  spamFlag        Boolean  @default(false)
+
+  @@index([disposition])
+  @@index([urgency])
+  @@index([safeguarding])
+  @@index([status])
+  @@index([createdAt])
+}
