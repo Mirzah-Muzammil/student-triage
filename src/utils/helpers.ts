@@ -1,4 +1,4 @@
-import { Case } from "@/services/types";
+import { Case } from "@/features/cases/types";
 
 export const urgencyWeight: Record<string, number> = {
   critical: 4,

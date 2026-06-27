@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Case } from "@/services/types";
+import { Case } from "@/features/cases/types";
 import {
   formatCategory,
   urgencyStyles,

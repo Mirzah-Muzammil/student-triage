@@ -6,9 +6,9 @@ import {
   updateCaseStatus,
   deleteCasePermanently,
   restoreSpamCase,
-} from "@/services/caseServices";
+} from "@/features/cases/actions";
 import CaseDetailModal from "./CaseDetailModal";
-import { Case } from "@/services/types";
+import { Case } from "@/features/cases/types";
 import {
   formatDate,
   formatCategory,
@@ -29,6 +29,7 @@ interface DashboardTableProps {
     resolved: number;
     injection: number;
     abusive: number;
+    quotaError?: string | null;
   };
   currentParams: {
     tab: string;
@@ -143,6 +144,39 @@ export default function DashboardTable({
             : "Review and respond to active student requests flagged for staff intervention."}
         </p>
       </div>
+
+      {/* Quota Limit Warning Banner */}
+      {stats.quotaError && (
+        <div className="bg-rose-50/70 border border-rose-200/80 p-5 rounded-[20px] flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="p-2 bg-rose-100 text-rose-600 rounded-[12px] shrink-0 mt-0.5">
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-rose-800">
+              Gemini API Quota Exceeded
+            </h4>
+            <p className="text-xs text-rose-700/80 mt-1 font-semibold leading-relaxed">
+              The Google Generative AI key has exceeded its usage limits or has expired. 
+              The application has successfully activated its safety fallback mode: all incoming requests are being escalated to manual review automatically.
+            </p>
+            <div className="mt-2.5 bg-white/60 border border-rose-100/50 rounded-lg p-2.5 text-[11px] font-mono text-rose-800/90 leading-tight">
+              {stats.quotaError}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── SPAM METRICS OR ALERTS HEADER ───────────────── */}
       {view === "spam" && (

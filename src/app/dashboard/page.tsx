@@ -1,6 +1,6 @@
 import Sidebar from "@/components/layout/Sidebar";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
-import { getCases } from "@/services/caseServices";
+import { getCases } from "@/features/cases/actions";
 
 export const dynamic = "force-dynamic";
 

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/core/db/prisma";
 import { unstable_cache, revalidateTag } from "next/cache";
-import { Case } from "@/services/types";
+import { Case } from "@/features/cases/types";
 import { sortCases } from "@/utils/helpers";
 
 export interface FetchCasesParams {
@@ -42,6 +42,7 @@ export const fetchAllRawCases = unstable_cache(
         disposition: true,
         spamFlag: true,
         injectionFlag: true,
+        aiReasoning: true,
       },
     });
   },
@@ -56,6 +57,14 @@ export async function getCases(params: FetchCasesParams) {
   const escalatedCases = rawCases.filter((c) => c.disposition !== "spam");
   const spamCases = rawCases.filter((c) => c.disposition === "spam");
 
+  const quotaCase = rawCases.find(
+    (c) =>
+      c.aiReasoning &&
+      (c.aiReasoning.toLowerCase().includes("quota") ||
+        c.aiReasoning.toLowerCase().includes("limit exceeded") ||
+        c.aiReasoning.toLowerCase().includes("exceeded your current quota"))
+  );
+
   const stats = {
     total: escalatedCases.length,
     safeguarding: escalatedCases.filter((c) => c.safeguarding).length,
@@ -66,6 +75,7 @@ export async function getCases(params: FetchCasesParams) {
     resolved: escalatedCases.filter((c) => c.status === "resolved").length,
     injection: spamCases.filter((c) => c.injectionFlag).length,
     abusive: spamCases.filter((c) => c.spamFlag).length,
+    quotaError: quotaCase ? quotaCase.aiReasoning : null,
   };
 
   // 2. Filter cases based on params

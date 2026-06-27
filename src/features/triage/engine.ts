@@ -1,14 +1,21 @@
 import { generateObject } from "ai";
 import { google } from "@ai-sdk/google";
+import { createOpenAI } from "@ai-sdk/openai";
 import { z } from "zod";
 import { TriageSchema, TriageOutputSchema, type TriageOutput } from "./schema";
 import { serializeResourcesForPrompt } from "./resources";
 import { logger } from "@/core/logger";
 
+const openrouter = createOpenAI({
+  baseURL: "https://openrouter.ai/api/v1",
+  apiKey: process.env.OPENROUTER_API_KEY || "",
+});
+
 // Prompt versioning — increment when the system prompt changes materially
 export const PROMPT_VERSION = "1.0.0";
 
 function buildSystemPrompt(): string {
+  
   const resourceLibrary = serializeResourcesForPrompt();
 
   return `
@@ -98,20 +105,54 @@ Respond with a JSON object matching this schema:
     if any crisis/danger signals are present, also include: "Emergency support: Samaritans 116 123" and/or "999" as appropriate)
 `.trim();
 
+  let object: any;
+  let usedProvider = "gemini";
+
   try {
     const systemPrompt = buildSystemPrompt();
+    try {
+      const res = await generateObject({
+        model: google("gemini-2.0-flash"),
+        schema: z.object({
+          triage: TriageSchema,
+          autoReply: z.string().nullable(),
+          clarifyQuestion: z.string().nullable(),
+          staffSummary: z.string().nullable(),
+        }),
+        system: systemPrompt,
+        prompt: userContent,
+      });
+      object = res.object;
+    } catch (err) {
+      const primaryErrorMessage = err instanceof Error ? err.message : String(err);
+      logger.aiTriageFailure({
+        error: `Primary Gemini failed: ${primaryErrorMessage}`,
+        latencyMs: Date.now() - startTime,
+        promptVersion: PROMPT_VERSION,
+      });
 
-    const { object } = await generateObject({
-      model: google("gemini-2.0-flash"),
-      schema: z.object({
-        triage: TriageSchema,
-        autoReply: z.string().nullable(),
-        clarifyQuestion: z.string().nullable(),
-        staffSummary: z.string().nullable(),
-      }),
-      system: systemPrompt,
-      prompt: userContent,
-    });
+      if (process.env.OPENROUTER_API_KEY) {
+        logger.aiFallbackUsed({
+          reason: "Primary Gemini failed, attempting OpenRouter fallback",
+          promptVersion: PROMPT_VERSION,
+        });
+        usedProvider = "openrouter";
+        const res = await generateObject({
+          model: openrouter("google/gemini-2.0-flash") as any,
+          schema: z.object({
+            triage: TriageSchema,
+            autoReply: z.string().nullable(),
+            clarifyQuestion: z.string().nullable(),
+            staffSummary: z.string().nullable(),
+          }),
+          system: systemPrompt,
+          prompt: userContent,
+        });
+        object = res.object;
+      } else {
+        throw err;
+      }
+    }
 
     const latencyMs = Date.now() - startTime;
 
@@ -126,7 +167,13 @@ Respond with a JSON object matching this schema:
         reason: "Schema validation failed",
         promptVersion: PROMPT_VERSION,
       });
-      return FALLBACK_OUTPUT;
+      return {
+        ...FALLBACK_OUTPUT,
+        triage: {
+          ...FALLBACK_OUTPUT.triage,
+          reasoning: `AI Triage Error: Schema validation failed. Provider: ${usedProvider}`,
+        },
+      };
     }
 
     // ── BUSINESS RULE OVERRIDES ──────────────────────────────────────────────
@@ -212,8 +259,9 @@ Respond with a JSON object matching this schema:
     return result;
   } catch (err) {
     const latencyMs = Date.now() - startTime;
+    const errorMessage = err instanceof Error ? err.message : String(err);
     logger.aiTriageFailure({
-      error: err instanceof Error ? err.message : String(err),
+      error: errorMessage,
       latencyMs,
       promptVersion: PROMPT_VERSION,
     });
@@ -221,6 +269,12 @@ Respond with a JSON object matching this schema:
       reason: "AI call threw an exception",
       promptVersion: PROMPT_VERSION,
     });
-    return FALLBACK_OUTPUT;
+    return {
+      ...FALLBACK_OUTPUT,
+      triage: {
+        ...FALLBACK_OUTPUT.triage,
+        reasoning: `AI Triage Error: ${errorMessage}`,
+      },
+    };
   }
 }
