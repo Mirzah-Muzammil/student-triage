@@ -43,6 +43,7 @@ export const fetchAllRawCases = unstable_cache(
         disposition: true,
         spamFlag: true,
         injectionFlag: true,
+        abuseFlag: true,
         aiReasoning: true,
         followUps: {
           select: {
@@ -74,13 +75,15 @@ export async function getCases(params: FetchCasesParams) {
   const stats = {
     total: escalatedCases.length,
     safeguarding: escalatedCases.filter((c) => c.safeguarding).length,
+    critical: escalatedCases.filter((c) => c.urgency === "critical").length,
     urgent: escalatedCases.filter((c) => c.urgency === "critical" || c.urgency === "high").length,
     spam: spamCases.length,
     new: escalatedCases.filter((c) => c.status === "new").length,
     inProgress: escalatedCases.filter((c) => c.status === "in_progress").length,
     resolved: escalatedCases.filter((c) => c.status === "resolved").length,
     injection: spamCases.filter((c) => c.injectionFlag).length,
-    abusive: spamCases.filter((c) => c.spamFlag).length,
+    abusive: spamCases.filter((c) => c.abuseFlag).length,
+    marketingSpam: spamCases.filter((c) => c.spamFlag).length,
     providerStatuses,
   };
 
@@ -93,6 +96,8 @@ export async function getCases(params: FetchCasesParams) {
     if (tab === "prompt_injection") {
       filtered = filtered.filter((c) => c.injectionFlag);
     } else if (tab === "abusive_content") {
+      filtered = filtered.filter((c) => c.abuseFlag);
+    } else if (tab === "marketing_spam") {
       filtered = filtered.filter((c) => c.spamFlag);
     }
   } else {

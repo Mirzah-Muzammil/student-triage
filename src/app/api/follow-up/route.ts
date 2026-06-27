@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   const prescreenResult = prescreen(message);
-  if (!prescreenResult.clean) {
+  if (prescreenResult.action === "discard") {
     await prisma.requestFollowUp.create({
       data: {
         requestId,
@@ -125,8 +125,9 @@ export async function POST(req: NextRequest) {
         clarifyQuestion: triageOutput.clarifyQuestion,
         staffSummary: triageOutput.staffSummary,
         status: isSpamDisposition ? "resolved" : "new",
-        spamFlag: isSpam,
-        injectionFlag: isInjection,
+        spamFlag: isSpam || prescreenResult.spam,
+        injectionFlag: isInjection || prescreenResult.injection,
+        abuseFlag: prescreenResult.abuse,
         aiReasoning: triageOutput.triage.reasoning,
         promptVersion: PROMPT_VERSION,
       },

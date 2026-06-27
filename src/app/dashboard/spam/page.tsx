@@ -24,7 +24,7 @@ export default async function SpamPage({ searchParams }: PageProps) {
     search: resolvedParams.search || "",
     from: resolvedParams.from || "",
     to: resolvedParams.to || "",
-    sort: resolvedParams.sort || "createdAt",
+    sort: resolvedParams.sort || "importance",
     asc: resolvedParams.asc === "true",
     urgency: resolvedParams.urgency || "",
   };

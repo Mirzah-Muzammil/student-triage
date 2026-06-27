@@ -1,7 +1,7 @@
 "use client";
 
 import { AiProviderStatus, Case } from "@/features/cases/types";
-import { formatCategory, formatDateTime } from "@/utils/helpers";
+import { formatCategory } from "@/utils/helpers";
 
 interface DashboardOverviewProps {
   cases: Case[];
@@ -13,6 +13,7 @@ interface DashboardOverviewProps {
     new: number;
     inProgress: number;
     resolved: number;
+    critical?: number;
     providerStatuses?: AiProviderStatus[];
   };
 }
@@ -113,120 +114,118 @@ export default function DashboardOverview({
         </div>
       </div>
 
-      {/* ── STATS ROW ────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* ── STATS ROW (V2 Configured) ────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
         {/* Card 1: Total Cases */}
-        <div className="bg-white border border-slate-200/60 rounded-[20px] p-6 shadow-sm flex flex-col justify-between h-36">
+        <div className="bg-white border border-slate-200/60 rounded-[20px] p-5 shadow-xs flex flex-col justify-between h-32">
           <div className="flex items-center justify-between">
-            <div className="p-3 bg-[#f0f4f8] text-blue-600 rounded-[14px] shrink-0">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
+            <div className="p-2.5 bg-[#f0f4f8] text-blue-600 rounded-[12px] shrink-0">
+              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">
-              Total Escalated
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">
+              Total Cases
             </p>
-            <p className="text-2xl font-extrabold text-slate-800 mt-2 leading-none">
+            <p className="text-xl font-extrabold text-slate-800 mt-2.5 leading-none">
               {stats.total}
             </p>
           </div>
         </div>
 
-        {/* Card 2: Safeguarding Cases */}
-        <div className="bg-white border border-slate-200/60 rounded-[20px] p-6 shadow-sm flex flex-col justify-between h-36">
+        {/* Card 2: New Cases */}
+        <div className="bg-white border border-slate-200/60 rounded-[20px] p-5 shadow-xs flex flex-col justify-between h-32">
           <div className="flex items-center justify-between">
-            <div className="p-3 bg-red-50 text-red-600 rounded-[14px] shrink-0">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
+            <div className="p-2.5 bg-sky-50 text-sky-600 rounded-[12px] shrink-0">
+              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">
-              Crisis / Safeguarding
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">
+              New Queue
             </p>
-            <p className="text-2xl font-extrabold text-slate-800 mt-2 leading-none">
+            <p className="text-xl font-extrabold text-slate-800 mt-2.5 leading-none">
+              {stats.new}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 3: In Progress */}
+        <div className="bg-white border border-slate-200/60 rounded-[20px] p-5 shadow-xs flex flex-col justify-between h-32">
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-[12px] shrink-0">
+              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">
+              In Progress
+            </p>
+            <p className="text-xl font-extrabold text-slate-800 mt-2.5 leading-none">
+              {stats.inProgress}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 4: Resolved */}
+        <div className="bg-white border border-slate-200/60 rounded-[20px] p-5 shadow-xs flex flex-col justify-between h-32">
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-[12px] shrink-0">
+              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">
+              Resolved
+            </p>
+            <p className="text-xl font-extrabold text-slate-800 mt-2.5 leading-none">
+              {stats.resolved}
+            </p>
+          </div>
+        </div>
+
+        {/* Card 5: Safeguarding */}
+        <div className="bg-white border border-slate-200/60 rounded-[20px] p-5 shadow-xs flex flex-col justify-between h-32">
+          <div className="flex items-center justify-between">
+            <div className="p-2.5 bg-rose-50 text-rose-600 rounded-[12px] shrink-0">
+              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] font-bold text-rose-500 uppercase tracking-wider leading-none">
+              Safeguarding
+            </p>
+            <p className="text-xl font-extrabold text-rose-600 mt-2.5 leading-none">
               {stats.safeguarding}
             </p>
           </div>
         </div>
 
-        {/* Card 3: Urgent Cases */}
-        <div className="bg-white border border-slate-200/60 rounded-[20px] p-6 shadow-sm flex flex-col justify-between h-36">
+        {/* Card 6: Critical Cases */}
+        <div className="bg-white border border-slate-200/60 rounded-[20px] p-5 shadow-xs flex flex-col justify-between h-32">
           <div className="flex items-center justify-between">
-            <div className="p-3 bg-orange-50 text-orange-600 rounded-[14px] shrink-0">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
+            <div className="p-2.5 bg-orange-50 text-orange-600 rounded-[12px] shrink-0">
+              <svg className="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
           </div>
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">
-              High & Critical
+            <p className="text-[10px] font-bold text-orange-500 uppercase tracking-wider leading-none">
+              Critical
             </p>
-            <p className="text-2xl font-extrabold text-slate-800 mt-2 leading-none">
-              {stats.urgent}
-            </p>
-          </div>
-        </div>
-
-        {/* Card 4: Spam Filtered */}
-        <div className="bg-white border border-slate-200/60 rounded-[20px] p-6 shadow-sm flex flex-col justify-between h-36">
-          <div className="flex items-center justify-between">
-            <div className="p-3 bg-slate-50 text-slate-500 rounded-[14px] shrink-0">
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </div>
-          </div>
-          <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider leading-none">
-              Filtered Spam / Junk
-            </p>
-            <p className="text-2xl font-extrabold text-slate-800 mt-2 leading-none">
-              {stats.spam}
+            <p className="text-xl font-extrabold text-orange-600 mt-2.5 leading-none">
+              {stats.critical ?? 0}
             </p>
           </div>
         </div>

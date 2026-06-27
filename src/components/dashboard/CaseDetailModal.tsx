@@ -113,12 +113,14 @@ export default function CaseDetailModal({
         {isSpam ? (
           <div
             className={`px-6 py-3.5 text-white font-semibold text-xs tracking-wide flex items-center gap-2 shrink-0 ${
-              caseData.injectionFlag ? "bg-purple-600" : "bg-amber-600"
+              caseData.injectionFlag ? "bg-purple-600" : caseData.abuseFlag ? "bg-rose-700" : "bg-amber-600"
             }`}
           >
             <span>
               {caseData.injectionFlag
                 ? "🚨 SECURITY: PROMPT INJECTION BLOCKED"
+                : caseData.abuseFlag
+                ? "⛔ SECURITY: HOSTILE / ABUSIVE CONTENT BLOCKED"
                 : "⚠️ WARNING: AUTOMATIC SPAM DETECTION"}
             </span>
           </div>
@@ -420,6 +422,8 @@ export default function CaseDetailModal({
               <span className="text-[11px] text-slate-400 font-semibold max-w-xs leading-normal">
                 {caseData.injectionFlag
                   ? "Flagged for malicious prompt injection pattern."
+                  : caseData.abuseFlag
+                  ? "Flagged for hostile or abusive content."
                   : "Flagged as junk or advertisement spam."}
               </span>
               <button

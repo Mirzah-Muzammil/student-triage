@@ -39,6 +39,7 @@ model Request {
   // Flags
   injectionFlag   Boolean  @default(false)
   spamFlag        Boolean  @default(false)
+  abuseFlag       Boolean  @default(false)
 
   followUps       RequestFollowUp[]
 

@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
       disposition: true,
       spamFlag: true,
       injectionFlag: true,
+      abuseFlag: true,
     },
   });
 

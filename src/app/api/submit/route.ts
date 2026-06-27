@@ -42,13 +42,23 @@ export async function POST(req: NextRequest) {
   // ── PRE-SCREEN ────────────────────────────────────────────────────────────
   const prescreenResult = prescreen(intake.message);
 
-  if (!prescreenResult.clean) {
+  if (prescreenResult.action === "discard") {
     // Log the detection
-    if (prescreenResult.reason === "injection") {
+    if (prescreenResult.injection) {
       logger.injectionDetected({ email: intake.email });
-    } else if (prescreenResult.reason === "spam") {
+    }
+    if (prescreenResult.spam) {
       logger.spamDetected({ email: intake.email });
     }
+    if (prescreenResult.abuse) {
+      logger.abuseDetected({ email: intake.email });
+    }
+
+    const discardReason = prescreenResult.injection
+      ? "injection"
+      : prescreenResult.spam
+      ? "spam"
+      : "abuse";
 
     // Log it but do NOT escalate to staff — just discard
     const request = await prisma.request.create({
@@ -59,9 +69,10 @@ export async function POST(req: NextRequest) {
         safeguarding: false,
         disposition: "spam",
         status: "resolved",
-        injectionFlag: prescreenResult.reason === "injection",
-        spamFlag: prescreenResult.reason === "spam",
-        staffSummary: `Automatically discarded: ${prescreenResult.reason} detected.`,
+        injectionFlag: prescreenResult.injection,
+        spamFlag: prescreenResult.spam,
+        abuseFlag: prescreenResult.abuse,
+        staffSummary: `Automatically discarded: ${discardReason} detected.`,
         promptVersion: PROMPT_VERSION,
       },
     });
@@ -105,8 +116,9 @@ export async function POST(req: NextRequest) {
       clarifyQuestion: triageOutput.clarifyQuestion,
       staffSummary: triageOutput.staffSummary,
       status: isSpamDisposition ? "resolved" : "new",
-      spamFlag: isSpam,
-      injectionFlag: isInjection,
+      spamFlag: isSpam || prescreenResult.spam,
+      injectionFlag: isInjection || prescreenResult.injection,
+      abuseFlag: prescreenResult.abuse,
       // V2: Persist reasoning and prompt version for internal debugging
       aiReasoning: triageOutput.triage.reasoning,
       promptVersion: PROMPT_VERSION,

@@ -62,7 +62,7 @@ export default function ProviderStatusPanel({ statuses }: ProviderStatusPanelPro
                     provider.status,
                   )}`}
                 >
-                  {provider.status.replace("_", " ")}
+                  {provider.status === "unknown" ? "Standby" : provider.status.replace("_", " ")}
                 </span>
               </div>
 
@@ -124,7 +124,7 @@ function providerStatusClass(status: string) {
 
 function formatLimit(remaining: number | null, limit: number | null) {
   if (remaining === null && limit === null) {
-    return "Unknown";
+    return "N/A";
   }
   if (limit === null) {
     return String(remaining);

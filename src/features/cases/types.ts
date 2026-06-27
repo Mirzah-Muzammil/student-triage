@@ -15,6 +15,7 @@ export interface Case {
   disposition: string;
   spamFlag: boolean;
   injectionFlag: boolean;
+  abuseFlag: boolean;
   aiReasoning?: string | null;
   promptVersion?: string | null;
   followUps?: CaseFollowUp[];

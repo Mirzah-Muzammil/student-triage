@@ -41,7 +41,28 @@ export function formatDateTime(dateStr: string | Date): string {
   }
 }
 
+export function sortCasesByPriority(cases: Case[]): Case[] {
+  return [...cases].sort((a, b) => {
+    if (a.safeguarding !== b.safeguarding) {
+      return a.safeguarding ? -1 : 1;
+    }
+
+    const urgencyDelta =
+      (urgencyWeight[b.urgency] ?? 0) - (urgencyWeight[a.urgency] ?? 0);
+
+    if (urgencyDelta !== 0) {
+      return urgencyDelta;
+    }
+
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
+
 export function sortCases(cases: Case[], sortField: string, sortAsc: boolean): Case[] {
+  if (sortField === "importance") {
+    return sortCasesByPriority(cases);
+  }
+
   return [...cases].sort((a, b) => {
     let comparison = 0;
     if (sortField === "name") {

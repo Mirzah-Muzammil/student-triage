@@ -30,23 +30,91 @@ const SPAM_PATTERNS = [
   /\bwork\s+from\s+home\b/i,
   /\bclick\s+(?:here\s+)?https?:\/\/\S+/i,
   /\b(?:crypto|bitcoin|ethereum|forex|trading\s+signals)\b/i,
-  // Abusive or wholly off-topic submissions should not enter the support queue.
+];
+
+// Abusive or hostile language patterns
+const ABUSE_PATTERNS = [
   /\b(?:kill\s+yourself|kys)\b/i,
   /\b(?:you|u)\s+(?:are\s+)?(?:useless|idiots?|morons?|stupid)\b/i,
   /\b(?:fuck|shit|bitch|cunt|wanker)s?\b/i,
   /\b(?:should|deserve\s+to)\s+(?:all\s+)?die\b/i,
 ];
 
-export type PrescreenResult =
-  | { clean: true }
-  | { clean: false; reason: "injection" | "spam" };
+export type PrescreenResult = {
+  action: "continue" | "discard";
+  injection: boolean;
+  spam: boolean;
+  abuse: boolean;
+};
 
 export function prescreen(message: string): PrescreenResult {
+  let injection = false;
+  let spam = false;
+  let abuse = false;
+
   for (const pattern of INJECTION_PATTERNS) {
-    if (pattern.test(message)) return { clean: false, reason: "injection" };
+    if (pattern.test(message)) {
+      injection = true;
+      break;
+    }
   }
+
   for (const pattern of SPAM_PATTERNS) {
-    if (pattern.test(message)) return { clean: false, reason: "spam" };
+    if (pattern.test(message)) {
+      spam = true;
+      break;
+    }
   }
-  return { clean: true };
+
+  for (const pattern of ABUSE_PATTERNS) {
+    if (pattern.test(message)) {
+      abuse = true;
+      break;
+    }
+  }
+
+  const matchesAny = injection || spam || abuse;
+  const isMixed = matchesAny && hasCrisisOrVisaSignals(message);
+
+  return {
+    action: matchesAny && !isMixed ? "discard" : "continue",
+    injection,
+    spam,
+    abuse,
+  };
+}
+
+function hasCrisisOrVisaSignals(message: string): boolean {
+  const lowercase = message.toLowerCase();
+  
+  const crisisKeywords = [
+    "feeling really low",
+    "feel really low",
+    "haven't left my room",
+    "havent left my room",
+    "see the point of anything",
+    "suicidal",
+    "kill myself",
+    "end my life",
+    "want to die",
+    "feeling low for weeks",
+    "haven't eaten properly",
+    "havent eaten properly",
+    "mental health",
+    "depressed",
+    "depression",
+    "live anymore",
+    "want to live",
+  ];
+  
+  const visaKeywords = [
+    "visa",
+    "cas",
+    "immigration",
+  ];
+  
+  return (
+    crisisKeywords.some(kw => lowercase.includes(kw)) ||
+    visaKeywords.some(kw => lowercase.includes(kw))
+  );
 }

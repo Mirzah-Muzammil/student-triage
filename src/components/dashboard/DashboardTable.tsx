@@ -30,6 +30,7 @@ interface DashboardTableProps {
     resolved: number;
     injection: number;
     abusive: number;
+    marketingSpam: number;
     providerStatuses?: AiProviderStatus[];
   };
   currentParams: {
@@ -188,6 +189,7 @@ export default function DashboardTable({
                   ["all", "All Spam", stats.spam],
                   ["prompt_injection", "Prompt Injection", stats.injection],
                   ["abusive_content", "Abusive Content", stats.abusive],
+                  ["marketing_spam", "Marketing Spam", stats.marketingSpam],
                 ] as const
               ).map(([value, label, count]) => (
                 <button
