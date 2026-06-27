@@ -26,3 +26,26 @@ export const TriageOutputSchema = z.object({
 });
 
 export type TriageOutput = z.infer<typeof TriageOutputSchema>;
+
+export function normalizeGeneratedTriageOutput(output: unknown): unknown {
+  if (!isRecord(output) || !isRecord(output.triage)) {
+    return output;
+  }
+
+  const safeguarding = output.triage.safeguarding;
+  if (safeguarding !== "true" && safeguarding !== "false") {
+    return output;
+  }
+
+  return {
+    ...output,
+    triage: {
+      ...output.triage,
+      safeguarding: safeguarding === "true",
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}

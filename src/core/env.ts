@@ -8,9 +8,9 @@ import { z } from "zod";
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1, "GOOGLE_GENERATIVE_AI_API_KEY is required"),
+  GROQ_API_KEY: z.string().optional(),
   DASHBOARD_USER: z.string().min(1, "DASHBOARD_USER is required"),
   DASHBOARD_PASSWORD: z.string().min(1, "DASHBOARD_PASSWORD is required"),
-  OPENROUTER_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;

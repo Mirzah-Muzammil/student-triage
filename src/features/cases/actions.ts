@@ -4,6 +4,7 @@ import { prisma } from "@/core/db/prisma";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { Case } from "@/features/cases/types";
 import { sortCases } from "@/utils/helpers";
+import { getProviderStatuses } from "@/features/triage/provider-status";
 
 export interface FetchCasesParams {
   tab?: string;
@@ -43,6 +44,16 @@ export const fetchAllRawCases = unstable_cache(
         spamFlag: true,
         injectionFlag: true,
         aiReasoning: true,
+        followUps: {
+          select: {
+            id: true,
+            createdAt: true,
+            sender: true,
+            message: true,
+            disposition: true,
+          },
+          orderBy: { createdAt: "asc" },
+        },
       },
     });
   },
@@ -51,19 +62,14 @@ export const fetchAllRawCases = unstable_cache(
 );
 
 export async function getCases(params: FetchCasesParams) {
-  const rawCases = await fetchAllRawCases();
+  const [rawCases, providerStatuses] = await Promise.all([
+    fetchAllRawCases(),
+    getProviderStatuses(),
+  ]);
 
   // 1. Calculate Stats based on the full cached set
   const escalatedCases = rawCases.filter((c) => c.disposition !== "spam");
   const spamCases = rawCases.filter((c) => c.disposition === "spam");
-
-  const quotaCase = rawCases.find(
-    (c) =>
-      c.aiReasoning &&
-      (c.aiReasoning.toLowerCase().includes("quota") ||
-        c.aiReasoning.toLowerCase().includes("limit exceeded") ||
-        c.aiReasoning.toLowerCase().includes("exceeded your current quota"))
-  );
 
   const stats = {
     total: escalatedCases.length,
@@ -75,7 +81,7 @@ export async function getCases(params: FetchCasesParams) {
     resolved: escalatedCases.filter((c) => c.status === "resolved").length,
     injection: spamCases.filter((c) => c.injectionFlag).length,
     abusive: spamCases.filter((c) => c.spamFlag).length,
-    quotaError: quotaCase ? quotaCase.aiReasoning : null,
+    providerStatuses,
   };
 
   // 2. Filter cases based on params
@@ -126,6 +132,13 @@ export async function getCases(params: FetchCasesParams) {
   const serialized = filtered.map((c) => ({
     ...c,
     createdAt: c.createdAt instanceof Date ? c.createdAt.toISOString() : c.createdAt,
+    followUps: c.followUps?.map((followUp) => ({
+      ...followUp,
+      createdAt:
+        followUp.createdAt instanceof Date
+          ? followUp.createdAt.toISOString()
+          : followUp.createdAt,
+    })),
   })) as Case[];
 
   // 3. Sort cases using helper

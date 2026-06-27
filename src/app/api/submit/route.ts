@@ -3,6 +3,7 @@ import { revalidateTag } from "next/cache";
 import { prisma } from "@/core/db/prisma";
 import { prescreen } from "@/features/triage/prescreen";
 import { triageRequest, PROMPT_VERSION } from "@/features/triage/engine";
+import { buildStudentResponse } from "@/features/triage/student-response";
 import { logger } from "@/core/logger";
 import { z } from "zod";
 
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log it but do NOT escalate to staff — just discard
-    await prisma.request.create({
+    const request = await prisma.request.create({
       data: {
         ...intake,
         category: "other",
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
 
     // Return a neutral response — do not reveal detection to the sender
     return NextResponse.json({
+      requestId: request.id,
       disposition: "spam",
       title: "Message received",
       message: "Thank you — your message has been received.",
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest) {
   const isSpam = isSpamDisposition && !isInjection;
 
   // ── PERSIST ───────────────────────────────────────────────────────────────
-  await prisma.request.create({
+  const request = await prisma.request.create({
     data: {
       ...intake,
       category: triageOutput.triage.category,
@@ -108,6 +110,15 @@ export async function POST(req: NextRequest) {
       // V2: Persist reasoning and prompt version for internal debugging
       aiReasoning: triageOutput.triage.reasoning,
       promptVersion: PROMPT_VERSION,
+      followUps: triageOutput.clarifyQuestion
+        ? {
+            create: {
+              sender: "assistant",
+              message: triageOutput.clarifyQuestion,
+              disposition: triageOutput.triage.disposition,
+            },
+          }
+        : undefined,
     },
   });
   revalidateTag("cases", { expire: 0 });
@@ -123,55 +134,13 @@ export async function POST(req: NextRequest) {
   });
 
   // ── RESPONSE TO STUDENT ───────────────────────────────────────────────────
-  // V2: Never expose reasoning, prompt, AI confidence, or internal flags.
+  // Never expose reasoning, prompt, AI confidence, or internal flags.
   // Only return approved student-facing messages.
   const studentFacing = buildStudentResponse(triageOutput);
 
   return NextResponse.json({
+    requestId: request.id,
     disposition: triageOutput.triage.disposition,
     ...studentFacing,
   });
-}
-
-function buildStudentResponse(output: Awaited<ReturnType<typeof triageRequest>>) {
-  const { triage, autoReply, clarifyQuestion } = output;
-
-  switch (triage.disposition) {
-    case "spam":
-      return {
-        title: "Message received",
-        message: "Thank you — your message has been received.",
-      };
-
-    case "handle_now":
-      return {
-        title: "We've got an answer for you",
-        message: autoReply,
-      };
-
-    case "clarify":
-      return {
-        title: "We need a little more information",
-        message: clarifyQuestion,
-      };
-
-    case "escalate": {
-      const isCrisis = triage.safeguarding || triage.urgency === "critical";
-      const emergencyNotice = isCrisis
-        ? "\n\nIf you are in immediate danger, please call **999**. For confidential emotional support available 24/7, call **Samaritans on 116 123**."
-        : "";
-
-      return {
-        title: "Your request has been passed to our team",
-        message:
-          `Thank you for reaching out. A member of our team will be in touch as soon as possible.${emergencyNotice}`,
-      };
-    }
-
-    default:
-      return {
-        title: "Message received",
-        message: "Thank you — a member of our team will follow up with you.",
-      };
-  }
 }

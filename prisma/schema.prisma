@@ -40,9 +40,38 @@ model Request {
   injectionFlag   Boolean  @default(false)
   spamFlag        Boolean  @default(false)
 
+  followUps       RequestFollowUp[]
+
   @@index([disposition])
   @@index([urgency])
   @@index([safeguarding])
   @@index([status])
   @@index([createdAt])
+}
+
+model RequestFollowUp {
+  id          String   @id @default(cuid())
+  requestId   String
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  sender      String   // student | assistant | system
+  message     String   @db.Text
+  disposition String?
+
+  @@index([requestId])
+  @@index([createdAt])
+}
+
+model AiProviderStatus {
+  provider          String   @id
+  status            String
+  lastCheckedAt     DateTime @default(now())
+  lastError         String?  @db.Text
+  requestLimit      Int?
+  remainingRequests Int?
+  tokenLimit        Int?
+  remainingTokens   Int?
+  requestReset      String?
+  tokenReset        String?
+  updatedAt         DateTime @updatedAt
 }

@@ -123,11 +123,14 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: var(--font-poppins), sans-serif;
+  --font-sans: var(--font-host-grotesk), sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
 @layer base {
+  html {
+    font-size: 106.25%; /* Scales up typography & spacing (17px base) */
+  }
   * {
     @apply border-border;
   }
@@ -136,3 +139,4 @@
     font-family: var(--font-sans), system-ui, sans-serif;
   }
 }
+

@@ -30,6 +30,11 @@ const SPAM_PATTERNS = [
   /\bwork\s+from\s+home\b/i,
   /\bclick\s+(?:here\s+)?https?:\/\/\S+/i,
   /\b(?:crypto|bitcoin|ethereum|forex|trading\s+signals)\b/i,
+  // Abusive or wholly off-topic submissions should not enter the support queue.
+  /\b(?:kill\s+yourself|kys)\b/i,
+  /\b(?:you|u)\s+(?:are\s+)?(?:useless|idiots?|morons?|stupid)\b/i,
+  /\b(?:fuck|shit|bitch|cunt|wanker)s?\b/i,
+  /\b(?:should|deserve\s+to)\s+(?:all\s+)?die\b/i,
 ];
 
 export type PrescreenResult =

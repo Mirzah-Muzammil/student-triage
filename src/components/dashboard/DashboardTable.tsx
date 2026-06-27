@@ -15,6 +15,7 @@ import {
   statusColorsTable,
   urgencyStyles,
 } from "@/utils/helpers";
+import { AiProviderStatus } from "@/features/cases/types";
 
 interface DashboardTableProps {
   view: "escalations" | "spam";
@@ -29,7 +30,7 @@ interface DashboardTableProps {
     resolved: number;
     injection: number;
     abusive: number;
-    quotaError?: string | null;
+    providerStatuses?: AiProviderStatus[];
   };
   currentParams: {
     tab: string;
@@ -132,7 +133,7 @@ export default function DashboardTable({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-800">
@@ -144,39 +145,6 @@ export default function DashboardTable({
             : "Review and respond to active student requests flagged for staff intervention."}
         </p>
       </div>
-
-      {/* Quota Limit Warning Banner */}
-      {stats.quotaError && (
-        <div className="bg-rose-50/70 border border-rose-200/80 p-5 rounded-[20px] flex items-start gap-4 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="p-2 bg-rose-100 text-rose-600 rounded-[12px] shrink-0 mt-0.5">
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2.5}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <div>
-            <h4 className="text-sm font-bold text-rose-800">
-              Gemini API Quota Exceeded
-            </h4>
-            <p className="text-xs text-rose-700/80 mt-1 font-semibold leading-relaxed">
-              The Google Generative AI key has exceeded its usage limits or has expired. 
-              The application has successfully activated its safety fallback mode: all incoming requests are being escalated to manual review automatically.
-            </p>
-            <div className="mt-2.5 bg-white/60 border border-rose-100/50 rounded-lg p-2.5 text-[11px] font-mono text-rose-800/90 leading-tight">
-              {stats.quotaError}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── SPAM METRICS OR ALERTS HEADER ───────────────── */}
       {view === "spam" && (
@@ -212,60 +180,62 @@ export default function DashboardTable({
       )}
 
       {/* ── TABS FILTER BAR ───────────────────────────────────────────────── */}
-      <div className="flex gap-1 rounded-xl border border-slate-200/60 bg-white p-1 w-fit shadow-sm">
-        {view === "spam"
-          ? (
-              [
-                ["all", "All Spam", stats.spam],
-                ["prompt_injection", "Prompt Injection", stats.injection],
-                ["abusive_content", "Abusive Content", stats.abusive],
-              ] as const
-            ).map(([value, label, count]) => (
-              <button
-                key={value}
-                id={`filter-${value}`}
-                onClick={() => updateParams({ tab: value })}
-                className={`rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
-                  currentParams.tab === value
-                    ? "bg-[#f0f4f8] text-slate-800 shadow-sm"
-                    : "text-slate-400 hover:text-slate-700"
-                }`}
-              >
-                {label}
-                <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/50 text-slate-500 font-medium">
-                  {count}
-                </span>
-              </button>
-            ))
-          : (
-              [
-                ["all", "All Escalations", stats.total],
-                ["new", "New", stats.new],
-                ["in_progress", "In Progress", stats.inProgress],
-                ["resolved", "Resolved", stats.resolved],
-              ] as const
-            ).map(([value, label, count]) => (
-              <button
-                key={value}
-                id={`filter-${value}`}
-                onClick={() => updateParams({ tab: value })}
-                className={`rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
-                  currentParams.tab === value
-                    ? "bg-[#f0f4f8] text-slate-800 shadow-sm"
-                    : "text-slate-400 hover:text-slate-700"
-                }`}
-              >
-                {label}
-                <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/50 text-slate-500 font-medium">
-                  {count}
-                </span>
-              </button>
-            ))}
+      <div className="overflow-x-auto whitespace-nowrap scrollbar-none pb-1 -mb-1 max-w-full">
+        <div className="flex gap-1 rounded-xl border border-slate-200/60 bg-white p-1 w-fit shadow-sm">
+          {view === "spam"
+            ? (
+                [
+                  ["all", "All Spam", stats.spam],
+                  ["prompt_injection", "Prompt Injection", stats.injection],
+                  ["abusive_content", "Abusive Content", stats.abusive],
+                ] as const
+              ).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  id={`filter-${value}`}
+                  onClick={() => updateParams({ tab: value })}
+                  className={`rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
+                    currentParams.tab === value
+                      ? "bg-[#f0f4f8] text-slate-800 shadow-sm"
+                      : "text-slate-400 hover:text-slate-700"
+                  }`}
+                >
+                  {label}
+                  <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/50 text-slate-500 font-medium">
+                    {count}
+                  </span>
+                </button>
+              ))
+            : (
+                [
+                  ["all", "All Escalations", stats.total],
+                  ["new", "New", stats.new],
+                  ["in_progress", "In Progress", stats.inProgress],
+                  ["resolved", "Resolved", stats.resolved],
+                ] as const
+              ).map(([value, label, count]) => (
+                <button
+                  key={value}
+                  id={`filter-${value}`}
+                  onClick={() => updateParams({ tab: value })}
+                  className={`rounded-lg px-4 py-2.5 text-xs font-semibold transition-all ${
+                    currentParams.tab === value
+                      ? "bg-[#f0f4f8] text-slate-800 shadow-sm"
+                      : "text-slate-400 hover:text-slate-700"
+                  }`}
+                >
+                  {label}
+                  <span className="ml-2 px-1.5 py-0.5 text-[10px] rounded-full bg-slate-200/50 text-slate-500 font-medium">
+                    {count}
+                  </span>
+                </button>
+              ))}
+        </div>
       </div>
 
-      {/* ── SEARCH & DATE FILTERS BAR (EchoRewards Design Alignment) ──────── */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white border border-slate-200/60 p-4 rounded-2xl shadow-sm">
-        {/* Search */}
+      {/* ── SEARCH & DATE FILTERS BAR ────────────────────────────────────── */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white border border-slate-200/60 p-4 rounded-2xl shadow-sm">
+        {/* Search Form */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -273,7 +243,7 @@ export default function DashboardTable({
             const searchVal = formData.get("search") as string;
             updateParams({ search: searchVal });
           }}
-          className="relative w-full md:max-w-md"
+          className="relative w-full lg:max-w-md shrink-0"
         >
           <input
             type="text"
@@ -290,28 +260,37 @@ export default function DashboardTable({
         </form>
 
         {/* Date & Urgency Filters */}
-        <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500 w-full md:w-auto justify-end">
-          <span>From</span>
-          <input
-            type="date"
-            value={currentParams.from}
-            onChange={(e) => updateParams({ from: e.target.value })}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold transition-colors focus:border-blue-500 focus:outline-none"
-          />
-          <span>To</span>
-          <input
-            type="date"
-            value={currentParams.to}
-            onChange={(e) => updateParams({ to: e.target.value })}
-            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold transition-colors focus:border-blue-500 focus:outline-none"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-row items-stretch lg:items-center gap-4 text-xs font-semibold text-slate-500 w-full lg:w-auto">
+          {/* Date Inputs Wrapper */}
+          <div className="grid grid-cols-2 gap-3 sm:col-span-1 lg:flex lg:items-center lg:gap-3">
+            <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold lg:normal-case lg:text-slate-500 lg:font-semibold">From</span>
+              <input
+                type="date"
+                value={currentParams.from}
+                onChange={(e) => updateParams({ from: e.target.value })}
+                className="h-10 w-full lg:w-auto rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold transition-colors focus:border-blue-500 focus:outline-none cursor-pointer"
+              />
+            </div>
+            <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold lg:normal-case lg:text-slate-500 lg:font-semibold">To</span>
+              <input
+                type="date"
+                value={currentParams.to}
+                onChange={(e) => updateParams({ to: e.target.value })}
+                className="h-10 w-full lg:w-auto rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold transition-colors focus:border-blue-500 focus:outline-none cursor-pointer"
+              />
+            </div>
+          </div>
+
+          {/* Urgency Filter Wrapper */}
           {view === "escalations" && (
-            <div className="flex items-center gap-2">
-              <span>Urgency</span>
+            <div className="flex flex-col lg:flex-row lg:items-center gap-1 lg:gap-2 sm:col-span-1">
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 font-bold lg:normal-case lg:text-slate-500 lg:font-semibold">Urgency</span>
               <select
                 value={currentParams.urgency}
                 onChange={(e) => updateParams({ urgency: e.target.value })}
-                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold transition-colors focus:border-blue-500 focus:outline-none capitalize"
+                className="h-10 w-full lg:w-auto rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold transition-colors focus:border-blue-500 focus:outline-none capitalize cursor-pointer"
               >
                 <option value="">All Urgencies</option>
                 <option value="critical">Critical</option>
@@ -327,7 +306,7 @@ export default function DashboardTable({
       {/* ── DATATABLE (EchoRewards Style) ───────────────────────────────────── */}
       <div className="border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm bg-white">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-100 text-left text-xs font-semibold">
+          <table className="min-w-[950px] w-full divide-y divide-slate-100 text-left text-xs font-semibold">
             <thead className="bg-[#f8fafd] text-slate-400 select-none">
               <tr>
                 <th
@@ -417,7 +396,7 @@ export default function DashboardTable({
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-6 py-12 text-center text-slate-400"
+                    className="px-6 py-12 text-start lg:text-center text-slate-400"
                   >
                     <p className="text-sm font-semibold">
                       No cases match your filters.
