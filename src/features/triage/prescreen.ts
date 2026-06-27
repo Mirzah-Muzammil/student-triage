@@ -40,11 +40,18 @@ const ABUSE_PATTERNS = [
   /\b(?:should|deserve\s+to)\s+(?:all\s+)?die\b/i,
 ];
 
+export enum PrescreenAction {
+  DISCARD = "discard",
+  CONTINUE = "continue",
+}
+
 export type PrescreenResult = {
-  action: "continue" | "discard";
-  injection: boolean;
-  spam: boolean;
-  abuse: boolean;
+  action: PrescreenAction;
+  spamDetected: boolean;
+  promptInjectionDetected: boolean;
+  abuseDetected: boolean;
+  supportRequestDetected: boolean;
+  reason?: string;
 };
 
 export function prescreen(message: string): PrescreenResult {
@@ -73,48 +80,123 @@ export function prescreen(message: string): PrescreenResult {
     }
   }
 
-  const matchesAny = injection || spam || abuse;
-  const isMixed = matchesAny && hasCrisisOrVisaSignals(message);
+  const supportRequestDetected = appearsToContainStudentSupportRequest(message);
+
+  if (supportRequestDetected) {
+    return {
+      action: PrescreenAction.CONTINUE,
+      spamDetected: spam,
+      promptInjectionDetected: injection,
+      abuseDetected: abuse,
+      supportRequestDetected,
+    };
+  }
 
   return {
-    action: matchesAny && !isMixed ? "discard" : "continue",
-    injection,
-    spam,
-    abuse,
+    action: PrescreenAction.DISCARD,
+    spamDetected: spam,
+    promptInjectionDetected: injection,
+    abuseDetected: abuse,
+    supportRequestDetected,
+    reason: getDiscardReason({ injection, spam, abuse }),
   };
 }
 
-function hasCrisisOrVisaSignals(message: string): boolean {
+function appearsToContainStudentSupportRequest(message: string): boolean {
   const lowercase = message.toLowerCase();
-  
-  const crisisKeywords = [
-    "feeling really low",
-    "feel really low",
-    "haven't left my room",
-    "havent left my room",
-    "see the point of anything",
-    "suicidal",
-    "kill myself",
-    "end my life",
-    "want to die",
-    "feeling low for weeks",
-    "haven't eaten properly",
-    "havent eaten properly",
+
+  const supportTopics = [
+    "academic",
+    "accommodation",
+    "assignment",
+    "cas",
+    "course",
+    "deposit",
+    "exam",
+    "finance",
+    "housing",
+    "landlord",
+    "library",
     "mental health",
+    "rent",
+    "scholarship",
+    "student support",
+    "visa",
+    "wellbeing",
+  ];
+
+  const crisisSignals = [
     "depressed",
     "depression",
+    "end my life",
+    "feeling really low",
+    "feel really low",
+    "kill myself",
     "live anymore",
-    "want to live",
+    "mental health",
+    "suicidal",
+    "want to die",
   ];
-  
-  const visaKeywords = [
-    "visa",
-    "cas",
-    "immigration",
+
+  const problemSignals = [
+    "can't",
+    "cannot",
+    "delayed",
+    "due",
+    "expires",
+    "expiring",
+    "failed",
+    "hasn't",
+    "haven't",
+    "help",
+    "missed",
+    "need",
+    "problem",
+    "struggling",
+    "support",
+    "worried",
+    "won't",
   ];
-  
-  return (
-    crisisKeywords.some(kw => lowercase.includes(kw)) ||
-    visaKeywords.some(kw => lowercase.includes(kw))
+
+  const helpSeekingSignals = [
+    "can someone help",
+    "could someone help",
+    "i need help",
+    "need advice",
+    "need support",
+    "please help",
+  ];
+
+  const hasTopic = supportTopics.some((topic) => lowercase.includes(topic));
+  const hasProblem = problemSignals.some((signal) => lowercase.includes(signal));
+  const hasCrisis = crisisSignals.some((signal) => lowercase.includes(signal));
+  const isHelpSeeking = helpSeekingSignals.some((signal) =>
+    lowercase.includes(signal),
   );
+
+  return hasCrisis || isHelpSeeking || (hasTopic && hasProblem);
+}
+
+function getDiscardReason({
+  injection,
+  spam,
+  abuse,
+}: {
+  injection: boolean;
+  spam: boolean;
+  abuse: boolean;
+}) {
+  if (spam) {
+    return "spam_without_support_request";
+  }
+
+  if (injection) {
+    return "prompt_injection_without_support_request";
+  }
+
+  if (abuse) {
+    return "abuse_without_support_request";
+  }
+
+  return "no_support_request_detected";
 }

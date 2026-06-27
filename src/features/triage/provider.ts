@@ -11,7 +11,17 @@ import {
   recordProviderStatus,
 } from "./provider-status";
 
-const GEMINI_PRIMARY_MODEL = "gemini-3-flash-preview";
+// Detailed chain of available Gemini models based on console allocation limits
+const GEMINI_MODELS = [
+  "gemini-3.5-flash",
+  "gemini-3.1-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-3-flash-preview",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+];
+
 const GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile";
 
 const GeneratedTriageSchema = z.object({
@@ -33,44 +43,58 @@ export async function generateTriageObject(
   const system = buildSystemPrompt();
   const prompt = buildUserPrompt(ctx);
 
-  try {
-    const res = await generateObject({
-      model: google(GEMINI_PRIMARY_MODEL),
-      schema: GeneratedTriageSchema,
-      system,
-      prompt,
-      maxRetries: 0,
-    });
+  let lastError: unknown = null;
 
-    await recordProviderStatus({
-      provider: "gemini",
-      status: "available",
-      lastError: null,
-    });
+  // Try each Gemini model in the fallback chain
+  for (const modelName of GEMINI_MODELS) {
+    try {
+      const res = await generateObject({
+        model: google(modelName),
+        schema: GeneratedTriageSchema,
+        system,
+        prompt,
+        maxRetries: 0,
+      });
 
-    return { object: res.object, provider: "gemini" };
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : String(err);
-    await recordProviderStatus({
-      provider: "gemini",
-      status: classifyProviderError(errorMessage),
-      lastError: errorMessage,
-    });
+      // Mark Gemini as successfully available
+      await recordProviderStatus({
+        provider: "gemini",
+        status: "available",
+        lastError: null,
+      });
 
-    if (!process.env.GROQ_API_KEY) {
-      throw err;
+      return { object: res.object, provider: "gemini" };
+    } catch (err) {
+      lastError = err;
+      const errorMessage = err instanceof Error ? err.message : String(err);
+
+      // Record error status details for the current model attempt
+      await recordProviderStatus({
+        provider: "gemini",
+        status: classifyProviderError(errorMessage),
+        lastError: `${modelName} error: ${errorMessage}`,
+      });
+
+      logger.aiFallbackUsed({
+        reason: `Primary ${modelName} failed (${errorMessage.substring(0, 100)}), trying next model...`,
+        promptVersion,
+      });
     }
-
-    logger.aiFallbackUsed({
-      reason: "Primary Gemini failed, attempting Groq fallback",
-      promptVersion,
-    });
-
-    return {
-      object: await generateGroqFallbackObject(system, prompt),
-      provider: "groq",
-    };
   }
+
+  if (!process.env.GROQ_API_KEY) {
+    throw lastError || new Error("All Gemini models failed and no GROQ_API_KEY is configured.");
+  }
+
+  logger.aiFallbackUsed({
+    reason: "All Gemini models failed, attempting Groq fallback",
+    promptVersion,
+  });
+
+  return {
+    object: await generateGroqFallbackObject(system, prompt),
+    provider: "groq",
+  };
 }
 
 async function generateGroqFallbackObject(

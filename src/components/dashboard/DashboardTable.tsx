@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   updateCaseStatus,
@@ -55,6 +55,15 @@ export default function DashboardTable({
   const searchParams = useSearchParams();
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [isActionLoading, setIsActionLoading] = useState<string | null>(null);
+
+  // Auto-refresh the dashboard table statistics and records every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [router]);
 
   function updateParams(newParams: Partial<typeof currentParams>) {
     const params = new URLSearchParams(searchParams.toString());

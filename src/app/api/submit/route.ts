@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/core/db/prisma";
-import { prescreen } from "@/features/triage/prescreen";
+import { PrescreenAction, prescreen } from "@/features/triage/prescreen";
 import { triageRequest, PROMPT_VERSION } from "@/features/triage/engine";
 import { buildStudentResponse } from "@/features/triage/student-response";
 import { logger } from "@/core/logger";
@@ -42,23 +42,19 @@ export async function POST(req: NextRequest) {
   // ── PRE-SCREEN ────────────────────────────────────────────────────────────
   const prescreenResult = prescreen(intake.message);
 
-  if (prescreenResult.action === "discard") {
+  if (prescreenResult.action === PrescreenAction.DISCARD) {
     // Log the detection
-    if (prescreenResult.injection) {
+    if (prescreenResult.promptInjectionDetected) {
       logger.injectionDetected({ email: intake.email });
     }
-    if (prescreenResult.spam) {
+    if (prescreenResult.spamDetected) {
       logger.spamDetected({ email: intake.email });
     }
-    if (prescreenResult.abuse) {
+    if (prescreenResult.abuseDetected) {
       logger.abuseDetected({ email: intake.email });
     }
 
-    const discardReason = prescreenResult.injection
-      ? "injection"
-      : prescreenResult.spam
-      ? "spam"
-      : "abuse";
+    const discardReason = prescreenResult.reason ?? "no_support_request_detected";
 
     // Log it but do NOT escalate to staff — just discard
     const request = await prisma.request.create({
@@ -69,9 +65,9 @@ export async function POST(req: NextRequest) {
         safeguarding: false,
         disposition: "spam",
         status: "resolved",
-        injectionFlag: prescreenResult.injection,
-        spamFlag: prescreenResult.spam,
-        abuseFlag: prescreenResult.abuse,
+        injectionFlag: prescreenResult.promptInjectionDetected,
+        spamFlag: prescreenResult.spamDetected,
+        abuseFlag: prescreenResult.abuseDetected,
         staffSummary: `Automatically discarded: ${discardReason} detected.`,
         promptVersion: PROMPT_VERSION,
       },
@@ -116,9 +112,9 @@ export async function POST(req: NextRequest) {
       clarifyQuestion: triageOutput.clarifyQuestion,
       staffSummary: triageOutput.staffSummary,
       status: isSpamDisposition ? "resolved" : "new",
-      spamFlag: isSpam || prescreenResult.spam,
-      injectionFlag: isInjection || prescreenResult.injection,
-      abuseFlag: prescreenResult.abuse,
+      spamFlag: isSpam || prescreenResult.spamDetected,
+      injectionFlag: isInjection || prescreenResult.promptInjectionDetected,
+      abuseFlag: prescreenResult.abuseDetected,
       // V2: Persist reasoning and prompt version for internal debugging
       aiReasoning: triageOutput.triage.reasoning,
       promptVersion: PROMPT_VERSION,

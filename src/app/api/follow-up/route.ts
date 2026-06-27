@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidateTag } from "next/cache";
 import { prisma } from "@/core/db/prisma";
-import { prescreen } from "@/features/triage/prescreen";
+import { PrescreenAction, prescreen } from "@/features/triage/prescreen";
 import { triageRequest, PROMPT_VERSION } from "@/features/triage/engine";
 import { buildStudentResponse } from "@/features/triage/student-response";
 import { logger } from "@/core/logger";
@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
   }
 
   const prescreenResult = prescreen(message);
-  if (prescreenResult.action === "discard") {
+  if (prescreenResult.action === PrescreenAction.DISCARD) {
     await prisma.requestFollowUp.create({
       data: {
         requestId,
@@ -125,9 +125,9 @@ export async function POST(req: NextRequest) {
         clarifyQuestion: triageOutput.clarifyQuestion,
         staffSummary: triageOutput.staffSummary,
         status: isSpamDisposition ? "resolved" : "new",
-        spamFlag: isSpam || prescreenResult.spam,
-        injectionFlag: isInjection || prescreenResult.injection,
-        abuseFlag: prescreenResult.abuse,
+        spamFlag: isSpam || prescreenResult.spamDetected,
+        injectionFlag: isInjection || prescreenResult.promptInjectionDetected,
+        abuseFlag: prescreenResult.abuseDetected,
         aiReasoning: triageOutput.triage.reasoning,
         promptVersion: PROMPT_VERSION,
       },

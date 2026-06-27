@@ -19,7 +19,6 @@ Create a `.env.local` file in the root directory:
 DATABASE_URL="postgresql://..." # Neon Postgres Connection String
 GOOGLE_GENERATIVE_AI_API_KEY="AQ.Ab..." # Gemini API Key
 GROQ_API_KEY="gsk_..." # Groq API Key
-OPENROUTER_API_KEY="sk-or-v1-..." # OpenRouter API Key
 DASHBOARD_USER="admin" # Admin username
 DASHBOARD_PASSWORD="password" # Admin password
 ```
